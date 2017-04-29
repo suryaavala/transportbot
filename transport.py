@@ -208,7 +208,7 @@ def _formatting_output(trip):
             #leg_summary += "\t-" + "\n\t-".join(direction['dir'])
             leg_summary += '\nYou will arrive by {}'.format(direction['arrive']) + '. '
 
-    trip_summary += 'If you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'],str(int(trip['duration'])), str(int(trip['fare'])))
+    trip_summary += 'If you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'].strftime("%H:%M"),str(int(trip['duration'])), str(int(trip['fare'])))
 
     return trip_summary + "\n" + leg_summary + "\n" + final_message
 
