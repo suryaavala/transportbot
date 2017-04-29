@@ -17,6 +17,7 @@ user_location = {}
 user_destination = {}
 user_name = "mate"
 
+
 @app.route('/', methods=['GET'])
 def print_signage():
     return "Conversational Chatbot Webservice, send your data towards this/webhook!"
@@ -63,7 +64,7 @@ def handle_message():
                         payload = messaging_event["postback"]["payload"]
                         if str(payload) == "Successfully added new_thread's CTAs":
                             apiai_reply = parse_natural_text("hello")
-                            apiai_reply.replace("#username", user_name)
+                            apiai_reply = apiai_reply.replace("#username", user_name)
                             send_message_staggered(sender_id, apiai_reply)  # Sending a response to the user.
                 if messaging_event.get("message"):  # Checking if the messaging even contains a message field.
                     if 'attachments' in messaging_event['message'].keys():
@@ -86,7 +87,7 @@ def handle_message():
                             nb_journies = 1
                             reply_text = get_directions(this_date, this_time, origin, destination, nb_journies)
                             print(reply_text)
-                            #reply_text = "🚏 Walk 8 min towards Queen Victoria Building. 🚏 Take the M50 bus next to Town Hall"
+                            # reply_text = "🚏 Walk 8 min towards Queen Victoria Building. 🚏 Take the M50 bus next to Town Hall"
                         send_message_staggered(sender_id, reply_text)
                     else:
                         message_text = messaging_event["message"]["text"]  # the message's text

@@ -173,21 +173,21 @@ def _date_conv(date):
     return date.astimezone(to_zone)
 
 def _formatting_output(trip):
-    '''You will be Walking from starting_point to ending_point
-    Then you will be taking a bus from stop[o] to stop[1]
-    Then you will ---
+    '''You will be Walking from starting_point to ending_point.
+    Then you will be taking a bus from stop[o] to stop[1].
+    Then you will ---.
     If you start now, you should reach your destination by end
     It is going to take about duration minutes and cost you around $fare.
 
 
     Walk/take the bus to ending_point
       - dir[0]
-      - dir[1]
+      - dir[1].
 
     Take the bus from stop[0] to stop [1]
     It stops at the following:
       -stop[0]
-      -stop[1]
+      -stop[1].
 
 
     You are where you want to be ;)
