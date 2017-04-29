@@ -101,18 +101,21 @@ def vehicle_directions(leg):
 
 def walking_directions (leg): #get given one leg of the trip
     directions = []
-    for section in leg["pathDescriptions"]:
+    try:
+        for section in leg["pathDescriptions"]:
         if section["distance"]:
-            if section["turnDirection"] == "STRAIGHT":
-                directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
-            else:
-                directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
-    return directions
+                if section["turnDirection"] == "STRAIGHT":
+                    directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
+                else:
+                    directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
+        return directions
+    except KeyError:
+        return
 
 
 if __name__ == '__main__':
-    Origin = {'long' : '151.1930151', 'lat' : '-33.9247547'}
-    Destination = {'long': '151.2066417', 'lat' : '-33.8689677'}
+    Origin = {'long' : '151.150005', 'lat' : '-33.882488'}
+    Destination = {'long': '151.259440', 'lat' : '-33.889625'}
     Date = '20170430'
     Time = '0900'
     print(get_directions(Date,Time, Origin,Destination,5))
