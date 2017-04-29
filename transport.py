@@ -12,8 +12,11 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
     #idtTime = '1635'
     itdDate = Date
     itdTime = Time
+    coord_standard = "EPSG:4326"
+    origin_coordinates = Origin['long'] + ":" + Origin["lat"] + ":" + coord_standard
+    dest_coordinates = Destination['long'] + ":" + Destination['lat'] + ":" + coord_standard
 
-    querystring = {"outputFormat":"rapidJSON","coordOutputFormat":"EPSG:4326","depArrMacro":"dep","itdDate":itdDate,"itdTime":itdTime,"type_origin":"any","name_origin":"10101331","type_destination":"any","name_destination":"10102027","calcNumberOfTrips":nb_journies,"TfNSWTR":"true","version":"10.2.1.15"}
+    querystring = {"outputFormat":"rapidJSON","coordOutputFormat":"EPSG:4326","depArrMacro":"dep","itdDate":itdDate,"itdTime":itdTime,"type_origin":"coord","name_origin":origin_coordinates,"type_destination":"coord","name_destination":dest_coordinates,"calcNumberOfTrips":nb_journies,"TfNSWTR":"true","version":"10.2.1.15"}
     apikey = 'apikey ' + TRANSPORT_API_KEY
     headers = {
         'authorization': apikey,
@@ -33,6 +36,7 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
         summary = []
         alerts = []
         legnumber = 0
+        directions = []
         for leg in legs:
             totalduration += leg['duration']
             origin = leg['origin']
@@ -46,12 +50,13 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             transportation = leg['transportation']
             routetype = transportation['product']['class']
             rt = transport_tpyes(routetype)
-            directions = []
+
             if rt == 'Walk':
                 #call aaron's function
-                directions = walking_directions(leg)
+                leg_directions = walking_directions(leg)
             else:
-                directions = vehicle_directions(leg)
+                leg_directions = vehicle_directions(leg)
+            directions.append(leg_directions)
             summary.append(rt)
             #alerts
 #             [[], [{'timestamps': {'creation': '2016-11-22T04:42:00Z', 'lastModification
@@ -106,4 +111,8 @@ def walking_directions (leg): #get given one leg of the trip
 
 
 if __name__ == '__main__':
-    print(get_directions('20170430','0110','d','o',5))
+    Origin = {'long' : '151.1930151', 'lat' : '-33.9247547'}
+    Destination = {'long': '151.2066417', 'lat' : '-33.8689677'}
+    Date = '20170430'
+    Time = '0900'
+    print(get_directions(Date,Time, Origin,Destination,5))
