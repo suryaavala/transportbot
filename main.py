@@ -3,48 +3,107 @@ from flask import Flask, request
 import apiai
 from config import *
 from threadsettings import *
+from geolocation.main import GoogleMaps
 
 app = Flask(__name__)
-
+user_location = None
 # An endpoint to ApiAi, an object used for making requests to a particular agent.
 ai = apiai.ApiAI(CLIENT_ACCESS_TOKEN)
+google_maps = GoogleMaps(api_key=GOOGLE_MAPS_KEY)
 
 
 @app.route('/', methods=['GET'])
-def verify():
-    # when the endpoint is registered as a webhook, it must echo back
-    # the 'hub.challenge' value it receives in the query arguments
-    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if not request.args.get("hub.verify_token") == VERIFY_TOKEN:
-            return "Verification token mismatch", 403
-        return request.args["hub.challenge"], 200
-    return "Welcome", 200
+def print_signage():
+    return "Conversational Chatbot Webservice, send your data towards this/webhook!"
 
 
-@app.route('/', methods=['POST'])
-def fb_webhook():
+# Handling HTTP GET when Facebook subscribes to our Webhook.
+@app.route('/webhook', methods=['GET'])
+def handle_verification():
+    print("Handling Verification.")
+    # Checking if the GET was sent by Messenger by matching the configured secret token.
+    if (request.args.get('hub.verify_token', '') == VERIFY_TOKEN):
+        # Request.args contains the parsed contents of the query string.
+        # The query string is appended to a HTTP call, containing parameters and values.
+        print("Webhook verified!")
+        # Returning a random string that messenger has sent to us, for verification on their end.
+        return request.args.get('hub.challenge', '')
+    else:
+        print("Wrong verification token!")
+        return "Error, wrong validation token"
+
+
+# Handling HTTP POST when Facebook sends us a payload of messages that have
+# have been sent to our bot. We're responding to a Messenger callback, one of
+# the events our webhook is subscribed to has fired.
+@app.route('/webhook', methods=['POST'])
+def handle_message():
     data = request.get_json()
-
+    print("Entered POST AREA")
     if data["object"] == "page":
+        send_greetings()
+        get_started()
+        show_persistent_menu()
+        # Iterating through entries and messaging events batched and sent to us by Messenger
         for entry in data["entry"]:
             for messaging_event in entry["messaging"]:
                 if messaging_event.get("message"):  # Checking if the messaging even contains a message field.
-
                     sender_id = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
                     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-                    message_text = messaging_event["message"]["text"]  # the message's text
-                    send_message_staggered(sender_id, parse_natural_text(message_text))  # Sending a response to the user.
-        return "ok", 200
+                    if 'attachments' in messaging_event['message'].keys():
+                        user_location = messaging_event['message']['attachments'][0]['payload']
+                        reply_text = "ok, I got you! Your location is "+str(user_location)+". Let me search for it..."
+                        send_message_staggered(sender_id, reply_text)
+                    else:
+                        message_text = messaging_event["message"]["text"]  # the message's text
+                        apiai_reply = parse_natural_text(message_text)
+                        if "#from" in apiai_reply.lower():
+                            send_location_button(sender_id)
+                        else:
+                            send_message_staggered(sender_id, apiai_reply)  # Sending a response to the user.
+
+                    print("SENT MESSAGE")
+
+    return "ok"
+
+
+def get_address_location(address):
+    location = google_maps.search(location=address)
+    return {'lat': location.first().lat, 'lon': location.first().lon}
 
 
 # Sending a message back through Messenger.
 def send_message(sender_id, message_text):
     r = requests.post("https://graph.facebook.com/v2.6/me/messages",
+
                       params={"access_token": PAGE_ACCESS_TOKEN},
+
                       headers={"Content-Type": "application/json"},
+
                       data=json.dumps({
                           "recipient": {"id": sender_id},
                           "message": {"text": message_text}
+                      }))
+
+
+# Sending a message back through Messenger.
+def send_location_button(sender_id):
+    r = requests.post("https://graph.facebook.com/v2.6/me/messages",
+
+                      params={"access_token": PAGE_ACCESS_TOKEN},
+
+                      headers={"Content-Type": "application/json"},
+
+                      data=json.dumps({
+                          "recipient": {"id": sender_id},
+                          "message": {
+                              "text": "Ok, where are you now?",
+                              "quick_replies": [
+                                  {
+                                      "content_type": "location",
+                                  }
+                              ]
+                          }
                       }))
 
 
@@ -60,7 +119,7 @@ def parse_natural_text(user_text):
     responseStatus = response['status']['code']
     if (responseStatus == 200):
         # Sending the textual response of the bot.
-        return (response['result']['fulfillment']['speech'])
+        return response['result']['fulfillment']['speech']
 
     else:
         return ("Sorry, I couldn't understand that question")
@@ -83,5 +142,5 @@ def send_message_staggered(sender_id, message_text):
         send_message(sender_id, message)
 
 
-if __name__ == "__main__":
-    app.run()
+if __name__ == '__main__':
+    app.run(debug=True)
