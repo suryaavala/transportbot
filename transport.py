@@ -203,12 +203,12 @@ def _formatting_output(trip):
             leg_summary += "\t-" + "\n\t-".join(direction['dir']) + '. '
         else:
             trip_summary += 'You\'ll take {} from {} -> {}\n'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
-            leg_summary += '\nTake the {} from {} to {}'.format(direction['type'], direction['starting_point'], direction['ending_point'])
+            leg_summary += '\nTake the {} from {} to {},at {}'.format(direction['type'], direction['starting_point'], direction['ending_point'],direction['depart'].strftime("%H:%M"))
             #leg_summary += 'It leaves at {}, and stops at:\n'.format(direction['depart'])
             #leg_summary += "\t-" + "\n\t-".join(direction['dir'])
-            leg_summary += '\nYou will arrive by {}'.format(direction['arrive']) + '. '
+            leg_summary += '\nYou will arrive by {}'.format(direction['arrive'].strftime("%H:%M")) + '. '
 
-    trip_summary += 'If you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'].strftime("%H:%M"),str(int(trip['duration'])), str(int(trip['fare'])))
+    trip_summary += 'If you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'].strftime("%H:%M"),str(int(trip['duration'])), trip['fare'])
 
     return trip_summary + "\n" + leg_summary + "\n" + final_message
 
