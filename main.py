@@ -86,7 +86,7 @@ def handle_message():
                             nb_journies = 1
                             reply_text = get_directions(this_date, this_time, origin, destination, nb_journies)
                             print(reply_text)
-                            reply_text = "🚏 Walk 8 min towards Queen Victoria Building. 🚏 Take the M50 bus next to Town Hall"
+                            #reply_text = "🚏 Walk 8 min towards Queen Victoria Building. 🚏 Take the M50 bus next to Town Hall"
                         send_message_staggered(sender_id, reply_text)
                     else:
                         message_text = messaging_event["message"]["text"]  # the message's text
