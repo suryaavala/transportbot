@@ -4,7 +4,8 @@ import json
 #import datetime
 import dateutil.parser
 #https://opendata.transport.nsw.gov.au/sites/default/files/TfNSW_TripPlannerAPI_technical_doc.pdf
-
+from datetime import datetime
+from dateutil import tz
 
 def get_directions (Date, Time, Origin, Destination, nb_journies):
     url = "https://api.transport.nsw.gov.au/v1/tp/trip"
@@ -27,11 +28,12 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
     response = requests.request("GET", url, headers=headers, params=querystring)
 
     decoded = json.loads(response.text)
-    print(len(decoded['journeys']))
+    #print(len(decoded['journeys']))
+    trip = {}
     for journey in decoded['journeys']:
 
         legs = journey['legs']
-        fares = journey['fare']
+        fares = journey['fare']['tickets'][0]['priceBrutto']
         totalduration = 0
         summary = []
         alerts = []
@@ -41,21 +43,30 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             totalduration += leg['duration']
             origin = leg['origin']
             destination = leg['destination']
+            #print(origin, destination)
             if legnumber == 0:
                 #depart = origin['departureTimePlanned']
                 depart = dateutil.parser.parse(origin['departureTimePlanned'])
+                depart = _date_conv(depart)
             if legnumber == len(legs) -1:
                 #arrive = origin['departureTimePlanned']
-                arrive = dateutil.parser.parse(origin['departureTimePlanned'])
+                arrive = dateutil.parser.parse(destination['arrivalTimeEstimated'])
+                arrive = _date_conv(arrive)
             transportation = leg['transportation']
             routetype = transportation['product']['class']
             rt = transport_tpyes(routetype)
+            leg_arrive = _date_conv(dateutil.parser.parse((leg['origin']["departureTimeEstimated"])))
+            leg_depart = _date_conv(dateutil.parser.parse((leg['destination']["arrivalTimeEstimated"])))
+            leg_directions = {}
+            leg_directions['arrive'] = leg_arrive
+            leg_directions['depart'] = leg_depart
+            leg_directions['type'] = rt
 
             if rt == 'Walk':
                 #call aaron's function
-                leg_directions = walking_directions(leg)
+                leg_directions['starting_point'],leg_directions['ending_point'],leg_directions['dir'] = walking_directions(leg)
             else:
-                leg_directions = vehicle_directions(leg)
+                leg_directions['dir'] = vehicle_directions(leg)
             directions.append(leg_directions)
             summary.append(rt)
             #alerts
@@ -68,10 +79,30 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             legnumber += 1
         minutes = totalduration/60
 
-        print(depart, arrive, minutes, directions)
+        #print(depart, arrive, minutes, directions)
 
-        print ("->".join(summary))
-    return summary
+        #print ("->".join(summary))
+        break
+    '''
+    legs = journey['legs']
+    fares = journey['fare']
+    totalduration = 0
+    summary = []
+    alerts = []
+    legnumber = 0
+    directions = []
+    '''
+    trip ['fare'] = fares
+    # f = open('fare.txt', 'w')
+    # fr = json.dumps(fares)
+    # f.write(fr)
+    trip ['duration'] = minutes
+    trip ['summary'] = '->'.join(summary)
+    trip ['directions'] = directions
+    #trip ['alerts'] = alerts
+    trip ['start'] = depart
+    trip ['end'] = arrive
+    return trip
 
 
 
@@ -102,20 +133,85 @@ def vehicle_directions(leg):
 def walking_directions (leg): #get given one leg of the trip
     directions = []
     try:
+        starting_point = leg['origin']['name']
+        ending_point = leg['destination']['name']
         for section in leg["pathDescriptions"]:
             if section["distance"]:
                 if section["turnDirection"] == "STRAIGHT":
                     directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
                 else:
                     directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
-        return directions
+        return (starting_point, ending_point, directions)
     except KeyError:
         return
+def _date_conv(date):
+
+
+    # METHOD 1: Hardcode zones:
+    from_zone = tz.gettz('UTC')
+    to_zone = tz.gettz('AEST')
+
+    # # METHOD 2: Auto-detect zones:
+    # from_zone = tz.tzutc()
+    # to_zone = tz.tzlocal()
+
+    # utc = datetime.utcnow()
+    # utc = datetime.strptime('2011-01-21 02:37:21', '%Y-%m-%d %H:%M:%S')
+
+    # # Tell the datetime object that it's in UTC time zone since
+    # # datetime objects are 'naive' by default
+    # utc = utc.replace(tzinfo=from_zone)
+
+    # Convert time zone
+    return date.astimezone(to_zone)
+
+def _formatting_output(trip):
+    '''You will be Walking from starting_point to ending_point
+    Then you will be taking a bus from stop[o] to stop[1]
+    Then you will ---
+    If you start now, you should reach your destination by end
+    It is going to take about duration minutes and cost you around $fare.
+
+
+    Walk/take the bus to ending_point
+      - dir[0]
+      - dir[1]
+
+    Take the bus from stop[0] to stop [1]
+    It stops at the following:
+      -stop[0]
+      -stop[1]
+
+
+    You are where you want to be ;)
+    '''
+    trip_summary = ''
+    leg_summary = ''
+
+    for direction in trip['directions']:
+        if direction['type'] == 'Walk':
+            if trip_summary:
+                trip_summary += 'Then you will be {} from {} to {}'.format('walking', direction['starting_point'], direction['ending_point'])
+            else:
+                trip_summary = 'You will be {} from {} to {}'.format('walking', direction['starting_point'], direction['ending_point'])
+            leg_summary += '{} from {} to {}:\n'.format('Walk', direction['starting_point'], direction['ending_point'])
+            leg_summary += "-" + "\n-".join(direction['dir']) + '. '
+        else:
+            if trip_summary:
+                trip_summary += 'Then you will be taking a {} from {} to {}'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
+            else:
+                trip_summary = 'You will be taking a {} from {} to {}'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
+            leg_summary += 'Take the {} from {} to {}'.format(direction['type'], direction['starting_point'], direction['ending_point'])
+            leg_summary += 'It leaves at {}, and stops at:\n'.format(direction['depart'])
+            leg_summary += "-" + "\n-".join(direction['dir'])
+            leg_summary += 'You will arrive by {}'.format(direction['arrive']) + '. '
+
+
 
 
 if __name__ == '__main__':
-    Origin = {'long' : '151.150005', 'lat' : '-33.882488'}
-    Destination = {'long': '151.259440', 'lat' : '-33.889625'}
+    Origin = {'long' : '151.1930151', 'lat' : '-33.9247547'}
+    Destination = {'long': '151.2066417', 'lat' : '-33.8689677'}
     Date = '20170430'
     Time = '0900'
     print(get_directions(Date,Time, Origin,Destination,5))
