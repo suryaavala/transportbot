@@ -58,6 +58,8 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             leg_arrive = _date_conv(dateutil.parser.parse((leg['origin']["departureTimeEstimated"])))
             leg_depart = _date_conv(dateutil.parser.parse((leg['destination']["arrivalTimeEstimated"])))
             leg_directions = {}
+            if rt == 'Bus':
+                rt += " "+leg['transportation']['disassembledName']
             leg_directions['arrive'] = leg_arrive
             leg_directions['depart'] = leg_depart
             leg_directions['type'] = rt
@@ -196,23 +198,17 @@ def _formatting_output(trip):
 
     for direction in trip['directions']:
         if direction['type'] == 'Walk':
-            if trip_summary:
-                trip_summary += '\nThen you will be {} from {} to {}'.format('walking', direction['starting_point'], direction['ending_point'])
-            else:
-                trip_summary = 'You will be {} from {} to {}'.format('walking', direction['starting_point'], direction['ending_point'])
+            trip_summary += 'You\'ll {} from {} -> {}\n'.format('Walk', direction['starting_point'], direction['ending_point'])
             leg_summary += '{} from {} to {}:\n'.format('Walk', direction['starting_point'], direction['ending_point'])
             leg_summary += "\t-" + "\n\t-".join(direction['dir']) + '. '
         else:
-            if trip_summary:
-                trip_summary += '\nThen you will be taking a {} from {} to {}'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
-            else:
-                trip_summary = 'You will be taking a {} from {} to {}'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
+            trip_summary += 'You\'ll take {} from {} -> {}\n'.format(direction['type'], direction['dir'][0],direction['dir'][-1])
             leg_summary += '\nTake the {} from {} to {}'.format(direction['type'], direction['starting_point'], direction['ending_point'])
-            leg_summary += 'It leaves at {}, and stops at:\n'.format(direction['depart'])
-            leg_summary += "\t-" + "\n\t-".join(direction['dir'])
+            #leg_summary += 'It leaves at {}, and stops at:\n'.format(direction['depart'])
+            #leg_summary += "\t-" + "\n\t-".join(direction['dir'])
             leg_summary += '\nYou will arrive by {}'.format(direction['arrive']) + '. '
 
-    trip_summary += '\nIf you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'],str(int(trip['duration'])), str(int(trip['fare'])))
+    trip_summary += 'If you start {}, you should reach your destination by {}\nIt is going to take about {} minutes and cost you around {} bucks.'.format('now', trip['end'],str(int(trip['duration'])), str(int(trip['fare'])))
 
     return trip_summary + "\n" + leg_summary + "\n" + final_message
 
@@ -220,7 +216,7 @@ def _formatting_output(trip):
 
 if __name__ == '__main__':
     Origin = {'long' : '151.1930151', 'lat' : '-33.9247547'}
-    Destination = {'long': '151.2066417', 'lat' : '-33.8689677'}
+    Destination = {'long': '151.187339', 'lat' : '-33.9232436'}
     Date = '20170430'
     Time = '0900'
     print(get_directions(Date,Time, Origin,Destination,5))
