@@ -7,6 +7,7 @@ import json
 import requests
 from config import *
 
+
 def send_greetings():
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
@@ -82,17 +83,17 @@ def show_persistent_menu():
         "call_to_actions": [
             {
                 "type": "postback",
-                "title": "Show buses only",
+                "title": "Fastest",
                 "payload": "MENU_ALL"
             },
             {
                 "type": "postback",
-                "title": "Show trains now",
+                "title": "Fewer transfers",
                 "payload": "MENU_FAV"
             },
             {
                 "type": "postback",
-                "title": "Show everything",
+                "title": "Least walking",
                 "payload": "MENU_FAV"
             },
             {
@@ -100,11 +101,7 @@ def show_persistent_menu():
                 "title": "Like Facebook Page",
                 "url": "https://www.facebook.com/eventochatbot/"
             },
-            {
-                "type": "postback",
-                "title": "Help",
-                "payload": "MENU_HELP"
-            },
+
         ]
     })
     r = requests.post("https://graph.facebook.com/v2.6/me/thread_settings", params=params, headers=headers, data=data)

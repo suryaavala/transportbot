@@ -3,11 +3,13 @@ from flask import Flask, request
 import apiai
 from config import *
 from threadsettings import *
+from geolocation.main import GoogleMaps
 
 app = Flask(__name__)
 user_location = None
 # An endpoint to ApiAi, an object used for making requests to a particular agent.
 ai = apiai.ApiAI(CLIENT_ACCESS_TOKEN)
+google_maps = GoogleMaps(api_key=GOOGLE_MAPS_KEY)
 
 
 @app.route('/', methods=['GET'])
@@ -48,18 +50,26 @@ def handle_message():
                 if messaging_event.get("message"):  # Checking if the messaging even contains a message field.
                     sender_id = messaging_event["sender"]["id"]  # the facebook ID of the person sending you the message
                     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-                    message_text = messaging_event["message"]["text"]  # the message's text
-                    apiai_reply = parse_natural_text(message_text)
-                    if type(messaging_event['message']['attachments']) is not None:
+                    if 'attachments' in messaging_event['message'].keys():
                         user_location = messaging_event['message']['attachments'][0]['payload']
-                    if "#from" in apiai_reply.lower():
-                        send_location_button(sender_id)
+                        reply_text = "ok, I got you! Your location is "+str(user_location)+". Let me search for it..."
+                        send_message_staggered(sender_id, reply_text)
                     else:
-                        send_message_staggered(sender_id, apiai_reply)  # Sending a response to the user.
+                        message_text = messaging_event["message"]["text"]  # the message's text
+                        apiai_reply = parse_natural_text(message_text)
+                        if "#from" in apiai_reply.lower():
+                            send_location_button(sender_id)
+                        else:
+                            send_message_staggered(sender_id, apiai_reply)  # Sending a response to the user.
 
                     print("SENT MESSAGE")
 
     return "ok"
+
+
+def get_address_location(address):
+    location = google_maps.search(location=address)
+    return {'lat': location.first().lat, 'lon': location.first().lon}
 
 
 # Sending a message back through Messenger.
