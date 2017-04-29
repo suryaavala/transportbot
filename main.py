@@ -7,6 +7,7 @@ from geolocation.main import GoogleMaps
 
 app = Flask(__name__)
 user_location = None
+user_destination = None
 # An endpoint to ApiAi, an object used for making requests to a particular agent.
 ai = apiai.ApiAI(CLIENT_ACCESS_TOKEN)
 google_maps = GoogleMaps(api_key=GOOGLE_MAPS_KEY)
@@ -42,7 +43,7 @@ def handle_message():
     print("Entered POST AREA")
     if data["object"] == "page":
         send_greetings()
-        get_started()
+        # get_started()
         show_persistent_menu()
         # Iterating through entries and messaging events batched and sent to us by Messenger
         for entry in data["entry"]:
@@ -52,12 +53,16 @@ def handle_message():
                     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
                     if 'attachments' in messaging_event['message'].keys():
                         user_location = messaging_event['message']['attachments'][0]['payload']
-                        reply_text = "ok, I got you! Your location is "+str(user_location)+". Let me search for it..."
+                        reply_text = "ok, I got you! Your location is " + str(
+                            user_location) + " and you want to go to " + str(user_destination) + ". Let me search for it."
                         send_message_staggered(sender_id, reply_text)
                     else:
                         message_text = messaging_event["message"]["text"]  # the message's text
                         apiai_reply = parse_natural_text(message_text)
+                        print(apiai_reply)
                         if "#from" in apiai_reply.lower():
+                            print("entering the send location button")
+                        elif "Perfect, where are you now?" == apiai_reply:
                             send_location_button(sender_id)
                         else:
                             send_message_staggered(sender_id, apiai_reply)  # Sending a response to the user.
@@ -68,8 +73,21 @@ def handle_message():
 
 
 def get_address_location(address):
-    location = google_maps.search(location=address)
-    return {'lat': location.first().lat, 'lon': location.first().lon}
+    location = None
+    if type(address) is dict:
+        if address["address"] != "":  # Exact location
+            location = google_maps.search(location=address["address"])
+        else:
+            if address["place"] != "" and address["suburb"] != "":
+                location = google_maps.search(location=address["place"])
+            elif address["place"] != "":
+                location = google_maps.search(location=address["place"])
+            elif address["suburb"] != "":
+                location = google_maps.search(location=address["suburb"])
+    if location is not None:
+        return {'lat': location.first().lat, 'lon': location.first().lng}
+    else:
+        return address
 
 
 # Sending a message back through Messenger.
@@ -88,6 +106,7 @@ def send_message(sender_id, message_text):
 
 # Sending a message back through Messenger.
 def send_location_button(sender_id):
+    print("Entered the function of the button")
     r = requests.post("https://graph.facebook.com/v2.6/me/messages",
 
                       params={"access_token": PAGE_ACCESS_TOKEN},
@@ -118,7 +137,10 @@ def parse_natural_text(user_text):
     response = json.loads(request.getresponse().read().decode('utf-8'))
     responseStatus = response['status']['code']
     if (responseStatus == 200):
-        # Sending the textual response of the bot.
+        if len(response['result']['parameters']) > 0:
+            # Sending the textual response of the bot.
+            user_destination = get_address_location(response['result']['parameters'])
+        print("in natural text")
         return response['result']['fulfillment']['speech']
 
     else:
