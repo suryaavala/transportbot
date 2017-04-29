@@ -8,6 +8,21 @@ import requests
 from config import *
 
 
+def get_username(user_id):
+    params = {
+        "access_token": PAGE_ACCESS_TOKEN
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    r = requests.get("https://graph.facebook.com/v2.6/"+str(user_id), params=params, headers=headers)
+    if r.status_code == 200:
+        ret = json.loads(r.text)
+        return ret["first_name"]
+    print(r.status_code)
+    return "mate"
+
+
 def send_greetings():
     params = {
         "access_token": os.environ["PAGE_ACCESS_TOKEN"]
@@ -17,9 +32,10 @@ def send_greetings():
     }
     data = json.dumps({
         "setting_type": "greeting",
-        "greeting": {
-            "text": "G'day {{user_first_name}} I'm TransportBot! I'm ready to help you get real time directions in NSW."
-        }
+        "greeting":
+            {
+                "text": "G'Day {{user_first_name}}! Where to mate?"
+            }
     })
     r = requests.post("https://graph.facebook.com/v2.6/me/thread_settings", params=params, headers=headers, data=data)
     if r.status_code != 200:
