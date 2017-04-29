@@ -49,7 +49,7 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             directions = []
             if rt == 'Walk':
                 #call aaron's function
-                pass
+                directions = walking_directions(leg)
             else:
                 directions = vehicle_directions(leg)
             summary.append(rt)
@@ -92,17 +92,16 @@ def vehicle_directions(leg):
             stops.append(stop['parent']['disassembledName'])
         except KeyError:
             stops.append(stop['parent']['name'])
-
-
     return stops
 
-def walkDir (leg): #get given one leg of the trip
+def walking_directions (leg): #get given one leg of the trip
     directions = []
     for section in leg["pathDescriptions"]:
-        if section["turnDirection"] == "STRAIGHT":
-            directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
-        else:
-            directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
+        if section["distance"]:
+            if section["turnDirection"] == "STRAIGHT":
+                directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
+            else:
+                directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
     return directions
 
 
