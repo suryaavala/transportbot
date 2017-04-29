@@ -96,6 +96,15 @@ def vehicle_directions(leg):
 
     return stops
 
+def walkDir (leg): #get given one leg of the trip
+    directions = []
+    for section in leg["pathDescriptions"]:
+        if section["turnDirection"] == "STRAIGHT":
+            directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
+        else:
+            directions.append("turn "+ section["turnDirection"].lower().replace("_"," ") + " down " + section["name"] + " and continue " + str(section["distance"]) + "m")
+    return directions
+
 
 if __name__ == '__main__':
     print(get_directions('20170430','0110','d','o',5))
