@@ -27,7 +27,7 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
     response = requests.request("GET", url, headers=headers, params=querystring)
 
     decoded = json.loads(response.text)
-    #print(len(decoded['journeys']))
+    print(len(decoded['journeys']))
     for journey in decoded['journeys']:
 
         legs = journey['legs']
@@ -68,10 +68,10 @@ def get_directions (Date, Time, Origin, Destination, nb_journies):
             legnumber += 1
         minutes = totalduration/60
 
-        #print(depart, arrive, minutes, directions)
+        print(depart, arrive, minutes, directions)
 
-        #print ("->".join(summary))
-        return directions
+        print ("->".join(summary))
+    return summary
 
 
 
@@ -103,7 +103,7 @@ def walking_directions (leg): #get given one leg of the trip
     directions = []
     try:
         for section in leg["pathDescriptions"]:
-        if section["distance"]:
+            if section["distance"]:
                 if section["turnDirection"] == "STRAIGHT":
                     directions.append("continue straight down " + section["name"] + " for " + str(section["distance"]) + "m")
                 else:
